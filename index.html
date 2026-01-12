@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>VENDE YA! | Classifieds</title>
+    <style>
+        :root { --main: #27ae60; --bg: #f4f7f6; }
+        body { font-family: 'Helvetica', sans-serif; background: var(--bg); margin: 0; }
+        header { display: flex; justify-content: space-between; align-items: center; padding: 20px 10%; background: white; border-bottom: 1px solid #ddd; }
+        .logo { font-size: 26px; font-weight: bold; color: var(--main); }
+        nav a { margin-left: 15px; text-decoration: none; color: #444; cursor: pointer; font-size: 14px; }
+        
+        .container { width: 90%; margin: 20px auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #f8f9fa; padding: 15px; text-align: left; font-size: 12px; color: #888; border-bottom: 2px solid #eee; }
+        td { padding: 15px; border-bottom: 1px solid #eee; vertical-align: middle; }
+        
+        /* Fixed Sizes as requested */
+        .thumb-col { width: 1in; height: 1in; object-fit: cover; border-radius: 4px; border: 1px solid #eee; }
+        .modal-img { width: 3in; height: 3in; object-fit: cover; margin-bottom: 15px; border-radius: 4px; }
+        
+        .title-link { color: #2980b9; cursor: pointer; font-weight: bold; }
+        .btn-post { display: block; width: 220px; margin: 20px auto; padding: 12px; background: var(--main); color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        
+        /* Modal */
+        .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); }
+        .modal-content { background: white; width: 450px; margin: 5% auto; padding: 25px; border-radius: 10px; position: relative; }
+        input, textarea, select { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="logo">VENDE YA!</div>
+    <nav>
+        <a onclick="fetchListings('Electronics')">Electronics</a>
+        <a onclick="fetchListings('Vehicles')">Vehicles</a>
+        <a onclick="fetchListings('Fashion')">Fashion</a>
+        <a onclick="fetchListings('Services')">Services</a>
+        <a onclick="fetchListings('Jobs')">Jobs</a>
+        <a onclick="fetchListings()" style="color: var(--main)">View All</a>
+    </nav>
+</header>
+
+<div class="container">
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Upload Image</th>
+                <th>Title</th>
+                <th>Category</th>
+                <th>Price</th>
+            </tr>
+        </thead>
+        <tbody id="listings-body"></tbody>
+    </table>
+    <div style="text-align:center; padding: 20px;">
+        <a id="prev" style="cursor:pointer">Previous</a> | <a id="next" style="cursor:pointer">Next</a>
+    </div>
+    <button class="btn-post" onclick="document.getElementById('postModal').style.display='block'">+ CREATE NEW POST</button>
+</div>
+
+<div id="detailsModal" class="modal">
+    <div class="modal-content">
+        <span onclick="this.parentElement.parentElement.style.display='none'" style="float:right; cursor:pointer">&times;</span>
+        <img id="d-img" src="" class="modal-img">
+        <h2 id="d-title"></h2>
+        <p><strong>Price:</strong> <span id="d-price"></span></p>
+        <p><strong>Contact:</strong> <span id="d-phone"></span></p>
+        <p><strong>Address:</strong> <span id="d-addr"></span></p>
+        <p id="d-desc" style="color:#555; line-height:1.5;"></p>
+    </div>
+</div>
+
+<div id="postModal" class="modal">
+    <div class="modal-content">
+        <h3>Create New Listing</h3>
+        <input type="text" id="p-title" placeholder="Title (e.g. iPhone 13)">
+        <select id="p-cat">
+            <option>Electronics</option><option>Vehicles</option>
+            <option>Fashion</option><option>Services</option><option>Jobs</option>
+        </select>
+        <input type="text" id="p-price" placeholder="Price">
+        <input type="text" id="p-phone" placeholder="Contact Number">
+        <input type="text" id="p-addr" placeholder="Address">
+        <textarea id="p-desc" placeholder="Full Description"></textarea>
+        <input type="text" id="p-img" placeholder="Paste Image Link (URL) here">
+        
+        <button class="btn-post" id="submit-btn" onclick="submitPost()">SUBMIT POST</button>
+        <button onclick="document.getElementById('postModal').style.display='none'" style="width:100%; background:none; border:none; color:gray; cursor:pointer">Cancel</button>
+    </div>
+</div>
+
+<script>
+    const API_URL = "https://vende-ya-backend.onrender.com"; // Replace with your Render URL
+
+    async function fetchListings(cat = '') {
+        const res = await fetch(`${API_URL}/api/listings${cat ? '?category='+cat : ''}`);
+        const data = await res.json();
+        const tbody = document.getElementById('listings-body');
+        tbody.innerHTML = '';
+        
+        data.forEach(item => {
+            const row = `<tr>
+                <td>${item.date}</td>
+                <td><img src="${item.image_url}" class="thumb-col"></td>
+                <td><a class="title-link" onclick='showPop(${JSON.stringify(item).replace(/'/g, "&apos;")})'>${item.title}</a></td>
+                <td>${item.category}</td>
+                <td><strong>${item.price}</strong></td>
+            </tr>`;
+            tbody.innerHTML += row;
+        });
+    }
+
+    async function submitPost() {
+        const btn = document.getElementById('submit-btn');
+        const data = {
+            title: document.getElementById('p-title').value,
+            category: document.getElementById('p-cat').value,
+            price: document.getElementById('p-price').value,
+            phone: document.getElementById('p-phone').value,
+            address: document.getElementById('p-addr').value,
+            description: document.getElementById('p-desc').value,
+            image_url: document.getElementById('p-img').value || 'https://via.placeholder.com/150'
+        };
+
+        btn.innerText = "Posting...";
+        await fetch(`${API_URL}/api/post`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+
+        document.getElementById('postModal').style.display = 'none';
+        btn.innerText = "SUBMIT POST";
+        fetchListings(); // Refresh the table automatically
+    }
+
+    function showPop(item) {
+        document.getElementById('d-title').innerText = item.title;
+        document.getElementById('d-price').innerText = item.price;
+        document.getElementById('d-phone').innerText = item.phone;
+        document.getElementById('d-addr').innerText = item.address;
+        document.getElementById('d-desc').innerText = item.description;
+        document.getElementById('d-img').src = item.image_url;
+        document.getElementById('detailsModal').style.display = 'block';
+    }
+
+    fetchListings(); // Initial load
+</script>
+</body>
+</html>
